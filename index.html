@@ -9,18 +9,14 @@
             margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; 
             display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
             height: 100vh; overflow: hidden; touch-action: none;
-            padding: 20px 0;
+            padding: 15px 0;
             box-sizing: border-box;
         }
-        h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: #aaa;
-        }
-        /* 트랙패드 영역 */
+        h3 { margin: 0; font-size: 1.1rem; color: #aaa; }
+        
         #trackpad {
             width: 90vw;
-            height: 70vh;
+            height: 65vh;
             background: #252525;
             border: 2px solid #444;
             border-radius: 20px;
@@ -33,35 +29,41 @@
         }
         #trackpad-text {
             color: #666;
-            font-size: 1.1rem;
+            font-size: 1rem;
             pointer-events: none;
+            text-align: center;
         }
-        /* 버튼 영역 */
+        
         .btn-container {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             width: 90vw;
             height: 10vh;
         }
         .btn { 
             flex: 1; height: 100%; 
             background: #ffca28; border: none; border-radius: 15px; 
-            color: #1a1a1a; font-size: 1.2rem; font-weight: bold; cursor: pointer; 
+            color: #1a1a1a; font-size: 1.1rem; font-weight: bold; cursor: pointer; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: background 0.1s;
         }
         .btn:active { background: #e6b800; transform: scale(0.98); }
         #right-btn { background: #ff7043; color: white; }
-        #right-btn:active { background: #d84315; }
+        #right-btn.active, #drag-btn.active {
+            background: #4caf50 !important;
+            color: white;
+        }
     </style>
 </head>
 <body>
-    <h3>🖱️ 무선 트랙패드 마우스</h3>
+    <h3>🖱️ 초고속 무선 트랙패드</h3>
     
     <div id="trackpad">
-        <div id="trackpad-text">여기를 손가락으로 밀어서 움직이세요</div>
+        <div id="trackpad-text">이곳을 터치하여 움직이세요</div>
     </div>
     
     <div class="btn-container">
+        <button id="drag-btn" class="btn">드래그(ON/OFF)</button>
         <button id="left-btn" class="btn">좌클릭</button>
         <button id="right-btn" class="btn">우클릭</button>
     </div>
@@ -72,13 +74,16 @@
         const trackpad = document.getElementById('trackpad');
         const leftBtn = document.getElementById('left-btn');
         const rightBtn = document.getElementById('right-btn');
+        const dragBtn = document.getElementById('drag-btn');
 
         let isTracking = false;
         let lastX = 0;
         let lastY = 0;
+        let accumulatedDx = 0;
+        let accumulatedDy = 0;
+        let isDraggingLocked = false;
         
-        // 감도 조절 (숫자가 클수록 커서가 빠르게 움직임)
-        const SENSITIVITY = 1.5; 
+        const SENSITIVITY = 1.8; // 감도 (원하는 만큼 조절 가능)
 
         function sendToFirebase(data) {
             fetch(FIREBASE_URL, {
@@ -92,27 +97,38 @@
             isTracking = true;
             lastX = x;
             lastY = y;
+            accumulatedDx = 0;
+            accumulatedDy = 0;
         }
 
         function moveTouch(x, y) {
             if (!isTracking) return;
 
-            // 이전 위치와의 변화량(Delta) 계산
             let dx = (x - lastX) * SENSITIVITY;
             let dy = (y - lastY) * SENSITIVITY;
 
             lastX = x;
             lastY = y;
 
-            if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+            accumulatedDx += dx;
+            accumulatedDy += dy;
+        }
+
+        // requestAnimationFrame을 이용해 화면 주사율에 맞춰 가장 부드럽게 전송
+        function animationLoop() {
+            if (isTracking && (Math.abs(accumulatedDx) > 0.1 || Math.abs(accumulatedDy) > 0.1)) {
                 sendToFirebase({ 
                     type: 'move', 
-                    x: dx, 
-                    y: dy, 
+                    x: accumulatedDx, 
+                    y: accumulatedDy, 
                     time: Date.now() 
                 });
+                accumulatedDx = 0;
+                accumulatedDy = 0;
             }
+            requestAnimationFrame(animationLoop);
         }
+        requestAnimationFrame(animationLoop);
 
         function endTouch() {
             if (!isTracking) return;
@@ -120,31 +136,38 @@
             sendToFirebase({ type: 'stop', time: Date.now() });
         }
 
-        // 터치 이벤트 연결
-        trackpad.addEventListener('touchstart', (e) => {
-            startTouch(e.touches[0].clientX, e.touches[0].clientY);
-        });
-        window.addEventListener('touchmove', (e) => {
-            if (isTracking) moveTouch(e.touches[0].clientX, e.touches[0].clientY);
-        });
+        // 터치 이벤트
+        trackpad.addEventListener('touchstart', (e) => { startTouch(e.touches[0].clientX, e.touches[0].clientY); });
+        window.addEventListener('touchmove', (e) => { if (isTracking) moveTouch(e.touches[0].clientX, e.touches[0].clientY); });
         window.addEventListener('touchend', endTouch);
 
-        // 마우스 드래그 테스트 지원 (PC 브라우저 등에서 테스트할 때)
-        trackpad.addEventListener('mousedown', (e) => {
-            startTouch(e.clientX, e.clientY);
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (isTracking) moveTouch(e.clientX, e.clientY);
-        });
+        // 마우스 테스트용 이벤트
+        trackpad.addEventListener('mousedown', (e) => { startTouch(e.clientX, e.clientY); });
+        window.addEventListener('mousemove', (e) => { if (isTracking) moveTouch(e.clientX, e.clientY); });
         window.addEventListener('mouseup', endTouch);
 
-        // 클릭 버튼 이벤트
+        // 좌클릭
         leftBtn.addEventListener('click', () => {
             sendToFirebase({ type: 'click', time: Date.now() });
         });
 
+        // 우클릭
         rightBtn.addEventListener('click', () => {
             sendToFirebase({ type: 'rightclick', time: Date.now() });
+        });
+
+        // 드래그 토글 버튼 (누르면 마우스 꾹 누른 상태가 유지됨)
+        dragBtn.addEventListener('click', () => {
+            isDraggingLocked = !isDraggingLocked;
+            if (isDraggingLocked) {
+                dragBtn.classList.add('active');
+                dragBtn.innerText = '드래그 중...';
+                sendToFirebase({ type: 'mousedown', time: Date.now() });
+            } else {
+                dragBtn.classList.remove('active');
+                dragBtn.innerText = '드래그(ON/OFF)';
+                sendToFirebase({ type: 'mouseup', time: Date.now() });
+            }
         });
     </script>
 </body>
