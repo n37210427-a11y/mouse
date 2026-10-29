@@ -3,87 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>스마트폰 무선 트랙패드</title>
+    <title>통합 무선 컨트롤러</title>
     <style>
         body { 
             margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; 
             display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
             height: 100vh; overflow: hidden; touch-action: none;
-            padding: 15px 0;
-            box-sizing: border-box;
+            padding: 10px 0; box-sizing: border-box;
         }
-        h3 { margin: 0; font-size: 1.1rem; color: #aaa; }
         
+        /* 상단 모드 전환 탭 */
+        .mode-tabs {
+            display: flex; gap: 10px; width: 90vw; height: 6vh;
+        }
+        .tab-btn {
+            flex: 1; background: #333; border: 2px solid #555; border-radius: 10px;
+            color: #aaa; font-size: 1rem; font-weight: bold; cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #ffca28; color: #1a1a1a; border-color: #ffca28;
+        }
+
+        /* 컨트롤러 패널 컨테이너 */
+        .panel {
+            display: none; width: 90vw; height: 75vh;
+            flex-direction: column; justify-content: space-between; align-items: center;
+        }
+        .panel.active { display: flex; }
+
+        /* 마우스 패드 영역 (우측 스크롤 포함) */
+        #trackpad-container {
+            width: 100%; height: 62vh;
+            display: flex; gap: 10px;
+        }
         #trackpad {
-            width: 90vw;
-            height: 65vh;
-            background: #252525;
-            border: 2px solid #444;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            box-shadow: inset 0 4px 10px rgba(0,0,0,0.6);
-            position: relative;
+            flex: 4; background: #252525; border: 2px solid #444; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            user-select: none; box-shadow: inset 0 4px 10px rgba(0,0,0,0.6); position: relative;
         }
-        #trackpad-text {
-            color: #666;
-            font-size: 1rem;
-            pointer-events: none;
-            text-align: center;
+        #scroll-area {
+            flex: 1; background: #222; border: 2px dashed #444; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            color: #888; font-size: 0.9rem; user-select: none;
         }
-        
+        .pad-text { color: #666; font-size: 0.95rem; pointer-events: none; text-align: center; }
+
+        /* 버튼 컨테이너 */
         .btn-container {
-            display: flex;
-            gap: 10px;
-            width: 90vw;
-            height: 10vh;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            width: 100%; height: 11vh;
         }
         .btn { 
-            flex: 1; height: 100%; 
-            background: #ffca28; border: none; border-radius: 15px; 
-            color: #1a1a1a; font-size: 1.1rem; font-weight: bold; cursor: pointer; 
+            background: #ffca28; border: none; border-radius: 12px; 
+            color: #1a1a1a; font-size: 1rem; font-weight: bold; cursor: pointer; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: background 0.1s;
         }
         .btn:active { background: #e6b800; transform: scale(0.98); }
         #right-btn { background: #ff7043; color: white; }
-        #right-btn.active, #drag-btn.active {
-            background: #4caf50 !important;
-            color: white;
+        #drag-btn.active { background: #4caf50 !important; color: white; }
+        .shortcut-btn { background: #42a5f5; color: white; }
+
+        /* 키보드 모드 스타일 */
+        #keyboard-panel {
+            justify-content: flex-start; gap: 15px; padding-top: 20px;
         }
+        #text-input {
+            width: 100%; height: 50px; background: #252525; border: 2px solid #555;
+            border-radius: 10px; color: white; font-size: 1.1rem; padding: 0 15px; box-sizing: border-box;
+        }
+        .kb-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;
+        }
+        .kb-btn {
+            height: 50px; background: #333; border: none; border-radius: 10px;
+            color: white; font-size: 1rem; font-weight: bold; cursor: pointer;
+        }
+        .kb-btn:active { background: #555; }
     </style>
 </head>
 <body>
-    <h3>🖱️ 초고속 무선 트랙패드</h3>
-    
-    <div id="trackpad">
-        <div id="trackpad-text">이곳을 터치하여 움직이세요</div>
+    <!-- 상단 모드 전환 -->
+    <div class="mode-tabs">
+        <button class="tab-btn active" onclick="switchMode('mouse')">🖱️ 마우스 모드</button>
+        <button class="tab-btn" onclick="switchMode('keyboard')">⌨️ 키보드 모드</button>
     </div>
-    
-    <div class="btn-container">
-        <button id="drag-btn" class="btn">드래그(ON/OFF)</button>
-        <button id="left-btn" class="btn">좌클릭</button>
-        <button id="right-btn" class="btn">우클릭</button>
+
+    <!-- 1. 마우스 모드 패널 -->
+    <div id="mouse-panel" class="panel active">
+        <div id="trackpad-container">
+            <div id="trackpad">
+                <div class="pad-text">트랙패드<br>(마우스 이동)</div>
+            </div>
+            <div id="scroll-area">
+                ↕️<br>스크롤<br>영역
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <button id="drag-btn" class="btn" onclick="toggleDrag()">드래그</button>
+            <button id="left-btn" class="btn" onclick="sendAction('click')">좌클릭</button>
+            <button id="right-btn" class="btn" onclick="sendAction('rightclick')">우클릭</button>
+            <button class="btn shortcut-btn" onclick="sendHotkey(['ctrl', 'c'])">복사 (Ctrl+C)</button>
+            <button class="btn shortcut-btn" onclick="sendHotkey(['ctrl', 'v'])">붙여넣기 (Ctrl+V)</button>
+            <button class="btn" onclick="sendHotkey(['ctrl', 'z'])">실행취소</button>
+        </div>
+    </div>
+
+    <!-- 2. 키보드 모드 패널 -->
+    <div id="keyboard-panel" class="panel">
+        <input type="text" id="text-input" placeholder="여기에 입력 후 전송..." autocomplete="off">
+        <button class="kb-btn" style="width:100%; background:#ffca28; color:#1a1a1a;" onclick="sendText()">텍스트 전송 (Enter)</button>
+        
+        <div class="kb-grid">
+            <button class="kb-btn" onclick="sendHotkey(['enter'])">Enter</button>
+            <button class="kb-btn" onclick="sendHotkey(['backspace'])">Backspace</button>
+            <button class="kb-btn" onclick="sendHotkey(['ctrl', 'a'])">모두 선택 (Ctrl+A)</button>
+            <button class="kb-btn" onclick="sendHotkey(['escape'])">ESC</button>
+        </div>
     </div>
 
     <script>
         const FIREBASE_URL = "https://mouse-f7ceb-default-rtdb.asia-southeast1.firebasedatabase.app/mouse_event.json";
-
-        const trackpad = document.getElementById('trackpad');
-        const leftBtn = document.getElementById('left-btn');
-        const rightBtn = document.getElementById('right-btn');
-        const dragBtn = document.getElementById('drag-btn');
-
-        let isTracking = false;
-        let lastX = 0;
-        let lastY = 0;
-        let accumulatedDx = 0;
-        let accumulatedDy = 0;
-        let isDraggingLocked = false;
-        
-        const SENSITIVITY = 1.8; // 감도 (원하는 만큼 조절 가능)
 
         function sendToFirebase(data) {
             fetch(FIREBASE_URL, {
@@ -93,82 +133,95 @@
             }).catch(err => {});
         }
 
-        function startTouch(x, y) {
-            isTracking = true;
-            lastX = x;
-            lastY = y;
-            accumulatedDx = 0;
-            accumulatedDy = 0;
+        function switchMode(mode) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            
+            if (mode === 'mouse') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('mouse-panel').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('keyboard-panel').classList.add('active');
+            }
         }
 
+        // --- 마우스 이동 및 스크롤 로직 ---
+        const trackpad = document.getElementById('trackpad');
+        const scrollArea = document.getElementById('scroll-area');
+
+        let isTracking = false, lastX = 0, lastY = 0, accDx = 0, accDy = 0;
+        let isScrollTracking = false, lastScrollY = 0;
+        const SENSITIVITY = 2.0; // 마우스 속도 및 정확도 향상
+
+        function startTouch(x, y) { isTracking = true; lastX = x; lastY = y; accDx = 0; accDy = 0; }
         function moveTouch(x, y) {
             if (!isTracking) return;
-
-            let dx = (x - lastX) * SENSITIVITY;
-            let dy = (y - lastY) * SENSITIVITY;
-
-            lastX = x;
-            lastY = y;
-
-            accumulatedDx += dx;
-            accumulatedDy += dy;
+            accDx += (x - lastX) * SENSITIVITY;
+            accDy += (y - lastY) * SENSITIVITY;
+            lastX = x; lastY = y;
         }
-
-        // requestAnimationFrame을 이용해 화면 주사율에 맞춰 가장 부드럽게 전송
         function animationLoop() {
-            if (isTracking && (Math.abs(accumulatedDx) > 0.1 || Math.abs(accumulatedDy) > 0.1)) {
-                sendToFirebase({ 
-                    type: 'move', 
-                    x: accumulatedDx, 
-                    y: accumulatedDy, 
-                    time: Date.now() 
-                });
-                accumulatedDx = 0;
-                accumulatedDy = 0;
+            if (isTracking && (Math.abs(accDx) > 0.1 || Math.abs(accDy) > 0.1)) {
+                sendToFirebase({ type: 'move', x: accDx, y: accDy, time: Date.now() });
+                accDx = 0; accDy = 0;
             }
             requestAnimationFrame(animationLoop);
         }
         requestAnimationFrame(animationLoop);
 
-        function endTouch() {
-            if (!isTracking) return;
-            isTracking = false;
-            sendToFirebase({ type: 'stop', time: Date.now() });
-        }
+        trackpad.addEventListener('touchstart', e => startTouch(e.touches[0].clientX, e.touches[0].clientY));
+        window.addEventListener('touchmove', e => { if (isTracking) moveTouch(e.touches[0].clientX, e.touches[0].clientY); });
+        window.addEventListener('touchend', () => { if (isTracking) { isTracking = false; sendToFirebase({ type: 'stop', time: Date.now() }); } });
 
-        // 터치 이벤트
-        trackpad.addEventListener('touchstart', (e) => { startTouch(e.touches[0].clientX, e.touches[0].clientY); });
-        window.addEventListener('touchmove', (e) => { if (isTracking) moveTouch(e.touches[0].clientX, e.touches[0].clientY); });
-        window.addEventListener('touchend', endTouch);
+        trackpad.addEventListener('mousedown', e => startTouch(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => { if (isTracking) moveTouch(e.clientX, e.clientY); });
+        window.addEventListener('mouseup', () => { if (isTracking) { isTracking = false; sendToFirebase({ type: 'stop', time: Date.now() }); } });
 
-        // 마우스 테스트용 이벤트
-        trackpad.addEventListener('mousedown', (e) => { startTouch(e.clientX, e.clientY); });
-        window.addEventListener('mousemove', (e) => { if (isTracking) moveTouch(e.clientX, e.clientY); });
-        window.addEventListener('mouseup', endTouch);
-
-        // 좌클릭
-        leftBtn.addEventListener('click', () => {
-            sendToFirebase({ type: 'click', time: Date.now() });
-        });
-
-        // 우클릭
-        rightBtn.addEventListener('click', () => {
-            sendToFirebase({ type: 'rightclick', time: Date.now() });
-        });
-
-        // 드래그 토글 버튼 (누르면 마우스 꾹 누른 상태가 유지됨)
-        dragBtn.addEventListener('click', () => {
-            isDraggingLocked = !isDraggingLocked;
-            if (isDraggingLocked) {
-                dragBtn.classList.add('active');
-                dragBtn.innerText = '드래그 중...';
-                sendToFirebase({ type: 'mousedown', time: Date.now() });
-            } else {
-                dragBtn.classList.remove('active');
-                dragBtn.innerText = '드래그(ON/OFF)';
-                sendToFirebase({ type: 'mouseup', time: Date.now() });
+        // 스크롤 영역 터치
+        scrollArea.addEventListener('touchstart', e => { isScrollTracking = true; lastScrollY = e.touches[0].clientY; });
+        window.addEventListener('touchmove', e => {
+            if (!isScrollTracking) return;
+            let currentY = e.touches[0].clientY;
+            let diff = lastScrollY - currentY; // 위로 올리면 양수(스크롤 다운), 아래로 내리면 음수(스크롤 업)
+            lastScrollY = currentY;
+            if (Math.abs(diff) > 2) {
+                sendToFirebase({ type: 'scroll', amount: diff * 3, time: Date.now() });
             }
         });
+        window.addEventListener('touchend', () => { isScrollTracking = false; });
+
+        // --- 버튼 액션 함수들 ---
+        function sendAction(type) {
+            sendToFirebase({ type: type, time: Date.now() });
+        }
+
+        function sendHotkey(keys) {
+            sendToFirebase({ type: 'hotkey', keys: keys, time: Date.now() });
+        }
+
+        let isDraggingLocked = false;
+        function toggleDrag() {
+            isDraggingLocked = !isDraggingLocked;
+            const btn = document.getElementById('drag-btn');
+            if (isDraggingLocked) {
+                btn.classList.add('active');
+                btn.innerText = '드래그중';
+                sendToFirebase({ type: 'mousedown', time: Date.now() });
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = '드래그';
+                sendToFirebase({ type: 'mouseup', time: Date.now() });
+            }
+        }
+
+        function sendText() {
+            const input = document.getElementById('text-input');
+            if (input.value) {
+                sendToFirebase({ type: 'type_text', text: input.value, time: Date.now() });
+                input.value = '';
+            }
+        }
     </script>
 </body>
 </html>
