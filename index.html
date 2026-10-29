@@ -3,52 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>마우스</title>
+    <title>스마트폰 무선 트랙패드</title>
     <style>
         body { 
             margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            height: 100vh; overflow: hidden; touch-action: none; 
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
+            height: 100vh; overflow: hidden; touch-action: none;
+            padding: 20px 0;
+            box-sizing: border-box;
         }
-        #joystick-base {
-            width: 220px; height: 220px;
-            background: #2d2d2d;
-            border: 3px dashed #555;
-            border-radius: 50%;
-            position: relative;
+        h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #aaa;
+        }
+        /* 트랙패드 영역 */
+        #trackpad {
+            width: 90vw;
+            height: 70vh;
+            background: #252525;
+            border: 2px solid #444;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             user-select: none;
-            margin-bottom: 20px;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.6);
+            position: relative;
         }
-        #joystick-handle {
-            width: 80px; height: 80px;
-            background: #ffca28;
-            border-radius: 50%;
-            position: absolute;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        #trackpad-text {
+            color: #666;
+            font-size: 1.1rem;
+            pointer-events: none;
         }
+        /* 버튼 영역 */
         .btn-container {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             width: 90vw;
+            height: 10vh;
         }
         .btn { 
-            flex: 1; height: 10vh; 
+            flex: 1; height: 100%; 
             background: #ffca28; border: none; border-radius: 15px; 
-            color: #1a1a1a; font-size: 1.5rem; font-weight: bold; cursor: pointer; 
+            color: #1a1a1a; font-size: 1.2rem; font-weight: bold; cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-        .btn:active { background: #e6b800; }
+        .btn:active { background: #e6b800; transform: scale(0.98); }
         #right-btn { background: #ff7043; color: white; }
         #right-btn:active { background: #d84315; }
     </style>
 </head>
 <body>
-    <h3>조이스틱 마우스</h3>
+    <h3>🖱️ 무선 트랙패드 마우스</h3>
     
-    <div id="joystick-base">
-        <div id="joystick-handle"></div>
+    <div id="trackpad">
+        <div id="trackpad-text">여기를 손가락으로 밀어서 움직이세요</div>
     </div>
     
     <div class="btn-container">
@@ -59,16 +69,16 @@
     <script>
         const FIREBASE_URL = "https://mouse-f7ceb-default-rtdb.asia-southeast1.firebasedatabase.app/mouse_event.json";
 
-        const base = document.getElementById('joystick-base');
-        const handle = document.getElementById('joystick-handle');
+        const trackpad = document.getElementById('trackpad');
         const leftBtn = document.getElementById('left-btn');
         const rightBtn = document.getElementById('right-btn');
 
-        let isDragging = false;
-        let centerX = 0, centerY = 0;
-        let maxRadius = 70;
-        let moveInterval = null;
-        let currentX = 0, currentY = 0;
+        let isTracking = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        // 감도 조절 (숫자가 클수록 커서가 빠르게 움직임)
+        const SENSITIVITY = 1.5; 
 
         function sendToFirebase(data) {
             fetch(FIREBASE_URL, {
@@ -78,75 +88,57 @@
             }).catch(err => {});
         }
 
-        function updateCenter() {
-            const rect = base.getBoundingClientRect();
-            centerX = rect.left + rect.width / 2;
-            centerY = rect.top + rect.height / 2;
+        function startTouch(x, y) {
+            isTracking = true;
+            lastX = x;
+            lastY = y;
         }
 
-        window.addEventListener('resize', updateCenter);
-        window.addEventListener('load', updateCenter);
+        function moveTouch(x, y) {
+            if (!isTracking) return;
 
-        function startDrag(clientX, clientY) {
-            isDragging = true;
-            updateCenter();
-            moveJoystick(clientX, clientY);
+            // 이전 위치와의 변화량(Delta) 계산
+            let dx = (x - lastX) * SENSITIVITY;
+            let dy = (y - lastY) * SENSITIVITY;
 
-            if (!moveInterval) {
-                // ⚡ 전송 주기를 15ms로 당겨서 반응 속도 극대화
-                moveInterval = setInterval(() => {
-                    if (isDragging && (Math.abs(currentX) > 0.1 || Math.abs(currentY) > 0.1)) {
-                        sendToFirebase({ 
-                            type: 'move', 
-                            x: currentX * 25, // 이동 속도 배수
-                            y: currentY * 25, 
-                            time: Date.now() 
-                        });
-                    }
-                }, 15);
+            lastX = x;
+            lastY = y;
+
+            if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+                sendToFirebase({ 
+                    type: 'move', 
+                    x: dx, 
+                    y: dy, 
+                    time: Date.now() 
+                });
             }
         }
 
-        function moveJoystick(clientX, clientY) {
-            if (!isDragging) return;
-            let dx = clientX - centerX;
-            let dy = clientY - centerY;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance > maxRadius) {
-                dx = (dx / distance) * maxRadius;
-                dy = (dy / distance) * maxRadius;
-            }
-
-            handle.style.transform = `translate(${dx}px, ${dy}px)`;
-            currentX = dx / maxRadius;
-            currentY = dy / maxRadius;
-        }
-
-        function endDrag() {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            if (moveInterval) {
-                clearInterval(moveInterval);
-                moveInterval = null;
-            }
-
-            handle.style.transform = `translate(0px, 0px)`;
-            currentX = 0;
-            currentY = 0;
-
+        function endTouch() {
+            if (!isTracking) return;
+            isTracking = false;
             sendToFirebase({ type: 'stop', time: Date.now() });
         }
 
-        base.addEventListener('touchstart', (e) => { startDrag(e.touches[0].clientX, e.touches[0].clientY); });
-        window.addEventListener('touchmove', (e) => { if(isDragging) moveJoystick(e.touches[0].clientX, e.touches[0].clientY); });
-        window.addEventListener('touchend', endDrag);
+        // 터치 이벤트 연결
+        trackpad.addEventListener('touchstart', (e) => {
+            startTouch(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (isTracking) moveTouch(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        window.addEventListener('touchend', endTouch);
 
-        base.addEventListener('mousedown', (e) => { startDrag(e.clientX, e.clientY); });
-        window.addEventListener('mousemove', (e) => { if(isDragging) moveJoystick(e.clientX, e.clientY); });
-        window.addEventListener('mouseup', endDrag);
+        // 마우스 드래그 테스트 지원 (PC 브라우저 등에서 테스트할 때)
+        trackpad.addEventListener('mousedown', (e) => {
+            startTouch(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isTracking) moveTouch(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', endTouch);
 
+        // 클릭 버튼 이벤트
         leftBtn.addEventListener('click', () => {
             sendToFirebase({ type: 'click', time: Date.now() });
         });
