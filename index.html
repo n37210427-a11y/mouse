@@ -48,7 +48,7 @@
             let deltaY = currentY - lastY;
 
             // 너무 잦은 전송을 막기 위해 30ms 간격 제한
-            if (now - lastSendTime > 30) {
+            if (now - lastSendTime > 15) {
                 if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
                     sendToFirebase({ type: 'move', x: deltaX, y: deltaY, time: now });
                     lastSendTime = now;
