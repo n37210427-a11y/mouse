@@ -98,12 +98,12 @@
                     if (isDragging && (Math.abs(currentX) > 0.1 || Math.abs(currentY) > 0.1)) {
                         sendToFirebase({ 
                             type: 'move', 
-                            x: currentX * 10, // 이동 속도 배수
-                            y: currentY * 10, 
+                            x: currentX * 20, // 이동 속도 배수
+                            y: currentY * 20, 
                             time: Date.now() 
                         });
                     }
-                }, 5);
+                }, 10);
             }
         }
 
