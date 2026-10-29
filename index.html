@@ -5,9 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>온라인 마우스</title>
     <style>
-        body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; touch-action: none; }
-        #pad { width: 90vw; height: 60vh; background: #2d2d2d; border: 2px dashed #444; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; user-select: none; }
-        #btn { width: 90vw; height: 15vh; margin-top: 20px; background: #ffca28; border: none; border-radius: 20px; color: #1a1a1a; font-size: 1.8rem; font-weight: bold; }
+        body { 
+            margin: 0; 
+            background: #1a1a1a; 
+            color: white; 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            touch-action: none; 
+        }
+        #pad { 
+            width: 90vw; 
+            height: 60vh; 
+            background: #2d2d2d; 
+            border: 2px dashed #444; 
+            border-radius: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.5rem; 
+            user-select: none; 
+        }
+        #btn { 
+            width: 90vw; 
+            height: 15vh; 
+            margin-top: 20px; 
+            background: #ffca28; 
+            border: none; 
+            border-radius: 20px; 
+            color: #1a1a1a; 
+            font-size: 1.8rem; 
+            font-weight: bold; 
+            cursor: pointer;
+        }
+        #btn:active {
+            background: #e6b800;
+        }
     </style>
 </head>
 <body>
@@ -16,16 +53,17 @@
     <button id="btn">클릭</button>
 
     <script>
-        // ⚠️ 본인의 Realtime Database URL 주소를 입력하세요 (끝에 /mouse_event.json 붙이기)
         const FIREBASE_URL = "https://mouse-f7ceb-default-rtdb.asia-southeast1.firebasedatabase.app/mouse_event.json";
 
         const pad = document.getElementById('pad');
         const btn = document.getElementById('btn');
         let lastX = 0, lastY = 0;
+        let lastSendTime = 0;
+        const SEND_INTERVAL = 30; // ms 단위 전송 간격 (약 33fps)
 
         function sendToFirebase(data) {
             fetch(FIREBASE_URL, {
-                method: 'PUT', // 데이터를 계속 덮어쓰기 위해 PUT 사용
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }).catch(err => console.log("전송 실패"));
@@ -37,15 +75,19 @@
         });
 
         pad.addEventListener('touchmove', (e) => {
+            const now = Date.now();
             let currentX = e.touches[0].clientX;
             let currentY = e.touches[0].clientY;
 
             let deltaX = currentX - lastX;
             let deltaY = currentY - lastY;
 
-            if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
-                // 파이어베이스 데이터베이스 값 변경 호출 -> 컴퓨터가 이를 실시간 감지하여 무브!
-                sendToFirebase({ type: 'move', x: deltaX, y: deltaY, time: Date.now() });
+            // 정해진 시간 간격(SEND_INTERVAL) 이상 지났을 때만 전송
+            if (now - lastSendTime > SEND_INTERVAL) {
+                if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+                    sendToFirebase({ type: 'move', x: deltaX, y: deltaY, time: now });
+                    lastSendTime = now;
+                }
             }
 
             lastX = currentX;
