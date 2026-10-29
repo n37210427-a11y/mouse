@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>통합 무선 컨트롤러</title>
+    <title>통합 무선 컨트롤러 (반응형)</title>
     <style>
         body { 
             margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; 
@@ -12,13 +12,24 @@
             padding: 10px 0; box-sizing: border-box;
         }
         
+        /* 기기별 화면 크기 최적화를 위한 래퍼 (스마트폰 & 아이패드 공용) */
+        .wrapper {
+            width: 92vw;
+            max-width: 650px; /* 아이패드/태블릿에서 너무 넓어지지 않도록 제한 */
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         /* 상단 모드 전환 탭 */
         .mode-tabs {
-            display: flex; gap: 10px; width: 90vw; height: 6vh;
+            display: flex; gap: 10px; width: 100%; height: 6vh; min-height: 40px;
         }
         .tab-btn {
-            flex: 1; background: #333; border: 2px solid #555; border-radius: 10px;
-            color: #aaa; font-size: 1rem; font-weight: bold; cursor: pointer;
+            flex: 1; background: #333; border: 2px solid #555; border-radius: 12px;
+            color: #aaa; font-size: 1.1rem; font-weight: bold; cursor: pointer;
         }
         .tab-btn.active {
             background: #ffca28; color: #1a1a1a; border-color: #ffca28;
@@ -26,15 +37,15 @@
 
         /* 컨트롤러 패널 컨테이너 */
         .panel {
-            display: none; width: 90vw; height: 75vh;
+            display: none; width: 100%; height: 86vh;
             flex-direction: column; justify-content: space-between; align-items: center;
         }
         .panel.active { display: flex; }
 
         /* 마우스 패드 영역 (우측 스크롤 포함) */
         #trackpad-container {
-            width: 100%; height: 62vh;
-            display: flex; gap: 10px;
+            width: 100%; height: 68vh;
+            display: flex; gap: 12px;
         }
         #trackpad {
             flex: 4; background: #252525; border: 2px solid #444; border-radius: 20px;
@@ -44,18 +55,18 @@
         #scroll-area {
             flex: 1; background: #222; border: 2px dashed #444; border-radius: 20px;
             display: flex; align-items: center; justify-content: center; text-align: center;
-            color: #888; font-size: 0.9rem; user-select: none;
+            color: #888; font-size: 1rem; user-select: none;
         }
-        .pad-text { color: #666; font-size: 0.95rem; pointer-events: none; text-align: center; }
+        .pad-text { color: #666; font-size: 1.1rem; pointer-events: none; text-align: center; line-height: 1.5; }
 
         /* 버튼 컨테이너 */
         .btn-container {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-            width: 100%; height: 11vh;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            width: 100%; height: 13vh; min-height: 60px;
         }
         .btn { 
-            background: #ffca28; border: none; border-radius: 12px; 
-            color: #1a1a1a; font-size: 1rem; font-weight: bold; cursor: pointer; 
+            background: #ffca28; border: none; border-radius: 14px; 
+            color: #1a1a1a; font-size: 1.1rem; font-weight: bold; cursor: pointer; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         .btn:active { background: #e6b800; transform: scale(0.98); }
@@ -65,60 +76,69 @@
 
         /* 키보드 모드 스타일 */
         #keyboard-panel {
-            justify-content: flex-start; gap: 15px; padding-top: 20px;
+            justify-content: flex-start; gap: 15px; padding-top: 10px;
         }
         #text-input {
-            width: 100%; height: 50px; background: #252525; border: 2px solid #555;
-            border-radius: 10px; color: white; font-size: 1.1rem; padding: 0 15px; box-sizing: border-box;
+            width: 100%; height: 55px; background: #252525; border: 2px solid #555;
+            border-radius: 12px; color: white; font-size: 1.2rem; padding: 0 15px; box-sizing: border-box;
         }
         .kb-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%;
         }
         .kb-btn {
-            height: 50px; background: #333; border: none; border-radius: 10px;
-            color: white; font-size: 1rem; font-weight: bold; cursor: pointer;
+            height: 60px; background: #333; border: none; border-radius: 12px;
+            color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer;
         }
         .kb-btn:active { background: #555; }
+
+        /* 아이패드(태블릿) 가로 화면 등 넓은 화면 대응 미디어 쿼리 */
+        @media (min-width: 768px) {
+            .wrapper { max-width: 750px; }
+            .pad-text { font-size: 1.3rem; }
+            .btn { font-size: 1.3rem; }
+        }
     </style>
 </head>
 <body>
-    <!-- 상단 모드 전환 -->
-    <div class="mode-tabs">
-        <button class="tab-btn active" onclick="switchMode('mouse')">🖱️ 마우스 모드</button>
-        <button class="tab-btn" onclick="switchMode('keyboard')">⌨️ 키보드 모드</button>
-    </div>
+    <div class="wrapper">
+        <!-- 상단 모드 전환 -->
+        <div class="mode-tabs">
+            <button class="tab-btn active" onclick="switchMode('mouse')">🖱️ 마우스 모드</button>
+            <button class="tab-btn" onclick="switchMode('keyboard')">⌨️ 키보드 모드</button>
+        </div>
 
-    <!-- 1. 마우스 모드 패널 -->
-    <div id="mouse-panel" class="panel active">
-        <div id="trackpad-container">
-            <div id="trackpad">
-                <div class="pad-text">트랙패드<br>(마우스 이동)</div>
+        <!-- 1. 마우스 모드 패널 -->
+        <div id="mouse-panel" class="panel active">
+            <div id="trackpad-container">
+                <div id="trackpad">
+                    <div class="pad-text">트랙패드<br><span style="font-size:0.9rem; color:#555;">(이곳을 밀어서 이동)</span></div>
+                </div>
+                <div id="scroll-area">
+                    ↕️<br>스크롤<br>영역
+                </div>
             </div>
-            <div id="scroll-area">
-                ↕️<br>스크롤<br>영역
+
+            <div class="btn-container">
+                <button id="drag-btn" class="btn" onclick="toggleDrag()">드래그</button>
+                <button id="left-btn" class="btn" onclick="sendAction('click')">좌클릭</button>
+                <button id="right-btn" class="btn" onclick="sendAction('rightclick')">우클릭</button>
+                <button class="btn shortcut-btn" onclick="sendHotkey(['ctrl', 'c'])">복사 (Ctrl+C)</button>
+                <button class="btn shortcut-btn" onclick="sendHotkey(['ctrl', 'v'])">붙여넣기 (Ctrl+V)</button>
+                <button class="btn" onclick="sendHotkey(['ctrl', 'z'])">실행취소</button>
             </div>
         </div>
 
-        <div class="btn-container">
-            <button id="drag-btn" class="btn" onclick="toggleDrag()">드래그</button>
-            <button id="left-btn" class="btn" onclick="sendAction('click')">좌클릭</button>
-            <button id="right-btn" class="btn" onclick="sendAction('rightclick')">우클릭</button>
-            <button class="btn shortcut-btn" onclick="sendHotkey(['ctrl', 'c'])">복사 (Ctrl+C)</button>
-            <button class="btn shortcut-btn" onclick="sendHotkey(['ctrl', 'v'])">붙여넣기 (Ctrl+V)</button>
-            <button class="btn" onclick="sendHotkey(['ctrl', 'z'])">실행취소</button>
-        </div>
-    </div>
-
-    <!-- 2. 키보드 모드 패널 -->
-    <div id="keyboard-panel" class="panel">
-        <input type="text" id="text-input" placeholder="여기에 입력 후 전송..." autocomplete="off">
-        <button class="kb-btn" style="width:100%; background:#ffca28; color:#1a1a1a;" onclick="sendText()">텍스트 전송 (Enter)</button>
-        
-        <div class="kb-grid">
-            <button class="kb-btn" onclick="sendHotkey(['enter'])">Enter</button>
-            <button class="kb-btn" onclick="sendHotkey(['backspace'])">Backspace</button>
-            <button class="kb-btn" onclick="sendHotkey(['ctrl', 'a'])">모두 선택 (Ctrl+A)</button>
-            <button class="kb-btn" onclick="sendHotkey(['escape'])">ESC</button>
+        <!-- 2. 키보드 모드 패널 -->
+        <div id="keyboard-panel" class="panel">
+            <input type="text" id="text-input" placeholder="글자 입력 후 전송..." autocomplete="off">
+            <button class="kb-btn" style="width:100%; background:#ffca28; color:#1a1a1a;" onclick="sendText()">텍스트 전송 (Enter)</button>
+            
+            <div class="kb-grid">
+                <button class="kb-btn" onclick="sendHotkey(['enter'])">Enter</button>
+                <button class="kb-btn" onclick="sendHotkey(['backspace'])">Backspace</button>
+                <button class="kb-btn" onclick="sendHotkey(['ctrl', 'a'])">모두 선택 (Ctrl+A)</button>
+                <button class="kb-btn" onclick="sendHotkey(['escape'])">ESC</button>
+            </div>
         </div>
     </div>
 
@@ -152,7 +172,7 @@
 
         let isTracking = false, lastX = 0, lastY = 0, accDx = 0, accDy = 0;
         let isScrollTracking = false, lastScrollY = 0;
-        const SENSITIVITY = 2.0; // 마우스 속도 및 정확도 향상
+        const SENSITIVITY = 2.0; 
 
         function startTouch(x, y) { isTracking = true; lastX = x; lastY = y; accDx = 0; accDy = 0; }
         function moveTouch(x, y) {
@@ -183,7 +203,7 @@
         window.addEventListener('touchmove', e => {
             if (!isScrollTracking) return;
             let currentY = e.touches[0].clientY;
-            let diff = lastScrollY - currentY; // 위로 올리면 양수(스크롤 다운), 아래로 내리면 음수(스크롤 업)
+            let diff = lastScrollY - currentY; 
             lastScrollY = currentY;
             if (Math.abs(diff) > 2) {
                 sendToFirebase({ type: 'scroll', amount: diff * 3, time: Date.now() });
