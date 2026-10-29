@@ -97,6 +97,10 @@
         btn.addEventListener('click', () => {
             sendToFirebase({ type: 'click', time: Date.now() });
         });
+        pad.addEventListener('touchend', () => {
+            // 손을 떼면 stop 신호 전송
+            sendToFirebase({ type: 'stop', time: Date.now() });
+        });
     </script>
 </body>
 </html>
