@@ -59,7 +59,7 @@
         const btn = document.getElementById('btn');
         let lastX = 0, lastY = 0;
         let lastSendTime = 0;
-        const SEND_INTERVAL = 30; // ms 단위 전송 간격 (약 33fps)
+        const SEND_INTERVAL = 5; // ms 단위 전송 간격 (약 33fps)
 
         function sendToFirebase(data) {
             fetch(FIREBASE_URL, {
